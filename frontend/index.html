@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading Journal — MT5 Analytics & Trade Notes</title>
+  <meta name="description" content="Premium Trading Journal with MetaTrader 5 integration, advanced analytics, equity curve, and detailed trade journaling." />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">📈</div>
+          <div>
+            <div class="sidebar-logo-text">TradingJournal</div>
+            <div class="sidebar-logo-sub">MT5 Analytics</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Main</div>
+          <button class="nav-item active" data-page="dashboard" id="nav-dashboard">
+            <span class="icon">📊</span> Dashboard
+          </button>
+          <button class="nav-item" data-page="trades" id="nav-trades">
+            <span class="icon">📋</span> Trade History
+          </button>
+          <button class="nav-item" data-page="analytics" id="nav-analytics">
+            <span class="icon">📈</span> Analytics
+          </button>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Settings</div>
+          <button class="nav-item" data-page="settings" id="nav-settings">
+            <span class="icon">⚙️</span> MT5 Connection
+          </button>
+        </div>
+      </nav>
+
+      <div class="sidebar-account">
+        <div class="account-badge" id="accountBadge">
+          <div class="account-dot"></div>
+          <div>
+            <div class="account-name" id="accountName">Demo Account</div>
+            <div class="account-server" id="accountServer">Demo-Server</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ================= MAIN CONTENT ================= -->
+    <main class="main-content">
+
+      <!-- ===== DASHBOARD PAGE ===== -->
+      <div id="page-dashboard" class="page active">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-title-sub">Portfolio overview & equity curve</div>
+          </div>
+          <div class="header-actions">
+            <button class="btn btn-primary" id="btnSync" onclick="handleSync()">
+              🔄 Sync MT5
+            </button>
+          </div>
+        </div>
+        <div class="page-body">
+          <!-- Stats -->
+          <div class="stats-grid" id="dashStats"></div>
+          <!-- Equity chart -->
+          <div class="grid-2">
+            <div class="card animate-in">
+              <div class="card-header">
+                <span class="card-title">Equity Curve</span>
+              </div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="equityChart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="card animate-in">
+              <div class="card-header">
+                <span class="card-title">Monthly P/L</span>
+              </div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="monthlyPnlChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Recent trades -->
+          <div class="card animate-in" style="margin-top: var(--space-md);">
+            <div class="card-header">
+              <span class="card-title">Recent Trades</span>
+              <button class="btn btn-ghost btn-sm" onclick="navigateTo('trades')">View All →</button>
+            </div>
+            <div class="card-body" style="padding:0;">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ticket</th><th>Symbol</th><th>Type</th><th>Volume</th>
+                      <th>Open</th><th>Close</th><th>P/L</th><th>Journal</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentTradesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== TRADES PAGE ===== -->
+      <div id="page-trades" class="page" style="display:none;">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Trade History</div>
+            <div class="page-title-sub">Click any trade to add journal notes</div>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="filter-bar">
+            <select class="form-select" id="filterSymbol" onchange="renderTrades()">
+              <option value="">All Symbols</option>
+            </select>
+            <select class="form-select" id="filterType" onchange="renderTrades()">
+              <option value="">All Types</option>
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+            <select class="form-select" id="filterTag" onchange="renderTrades()">
+              <option value="">All Strategies</option>
+            </select>
+            <select class="form-select" id="filterJournal" onchange="renderTrades()">
+              <option value="">All Journal Status</option>
+              <option value="done">✅ Journaled</option>
+              <option value="pending">⏳ Pending</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="card-body" style="padding:0;">
+              <div class="table-container">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Ticket</th><th>Symbol</th><th>Type</th><th>Volume</th>
+                      <th>Open Price</th><th>Close Price</th><th>Open Time</th>
+                      <th>P/L</th><th>Strategy</th><th>Journal</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="tradesBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== ANALYTICS PAGE ===== -->
+      <div id="page-analytics" class="page" style="display:none;">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Analytics</div>
+            <div class="page-title-sub">In-depth performance analysis</div>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="tabs" id="analyticsTabs">
+            <button class="tab active" data-tab="overview">Overview</button>
+            <button class="tab" data-tab="strategy">Strategy Breakdown</button>
+            <button class="tab" data-tab="drawdown">Drawdown & MAE</button>
+          </div>
+
+          <!-- Overview Tab -->
+          <div class="tab-content active" id="tab-overview">
+            <div class="stats-grid" id="analyticsStats"></div>
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header"><span class="card-title">Cumulative P/L</span></div>
+                <div class="card-body"><div class="chart-container"><canvas id="cumulativePnlChart"></canvas></div></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><span class="card-title">Symbol Performance</span></div>
+                <div class="card-body"><div class="chart-container"><canvas id="symbolChart"></canvas></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Strategy Tab -->
+          <div class="tab-content" id="tab-strategy">
+            <div class="card">
+              <div class="card-header"><span class="card-title">Performance by Strategy Tag</span></div>
+              <div class="card-body" style="padding:0;">
+                <div class="table-container">
+                  <table class="strategy-table">
+                    <thead>
+                      <tr>
+                        <th>Strategy</th><th>Trades</th><th>Win Rate</th>
+                        <th>Profit Factor</th><th>Net P/L</th><th>Avg R:R</th>
+                      </tr>
+                    </thead>
+                    <tbody id="strategyBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="margin-top:var(--space-md);">
+              <div class="card-header"><span class="card-title">Strategy Win Rate Comparison</span></div>
+              <div class="card-body"><div class="chart-container"><canvas id="strategyBarChart"></canvas></div></div>
+            </div>
+          </div>
+
+          <!-- Drawdown Tab -->
+          <div class="tab-content" id="tab-drawdown">
+            <div class="grid-2">
+              <div class="card">
+                <div class="card-header"><span class="card-title">Portfolio Drawdown</span></div>
+                <div class="card-body"><div class="chart-container"><canvas id="drawdownChart"></canvas></div></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><span class="card-title">MAE Scatter (Adverse Excursion)</span></div>
+                <div class="card-body"><div class="chart-container"><canvas id="maeChart"></canvas></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SETTINGS PAGE ===== -->
+      <div id="page-settings" class="page" style="display:none;">
+        <div class="page-header">
+          <div>
+            <div class="page-title">Settings</div>
+            <div class="page-title-sub">MT5 connection & sync configuration</div>
+          </div>
+        </div>
+        <div class="page-body">
+          <div class="card" style="max-width:600px;">
+            <div class="card-header">
+              <span class="card-title">MetaTrader 5 Account</span>
+            </div>
+            <div class="card-body">
+              <div class="form-group">
+                <label class="form-label">MT5 Login (Account Number)</label>
+                <input class="form-input" type="number" id="settingLogin" placeholder="e.g. 12345678" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Server</label>
+                <input class="form-input" type="text" id="settingServer" placeholder="e.g. MetaQuotes-Demo" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Password</label>
+                <input class="form-input" type="password" id="settingPassword" placeholder="Trading password" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Display Name</label>
+                <input class="form-input" type="text" id="settingName" placeholder="e.g. My Demo Account" />
+              </div>
+              <button class="btn btn-primary" onclick="saveSettings()">💾 Save & Connect</button>
+            </div>
+          </div>
+          <div class="card" style="max-width:600px; margin-top:var(--space-md);">
+            <div class="card-header">
+              <span class="card-title">Demo Mode</span>
+            </div>
+            <div class="card-body">
+              <p style="color:var(--text-secondary); margin-bottom:var(--space-md); font-size:0.9rem;">
+                Load mock data to explore the app without an MT5 connection.
+              </p>
+              <button class="btn btn-secondary" onclick="loadMockData()">🎲 Load Mock Data</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ================= JOURNAL DRAWER ================= -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+  <div class="drawer" id="journalDrawer">
+    <div class="drawer-header">
+      <div>
+        <div class="drawer-title">📝 Trade Journal</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);" id="drawerSubtitle"></div>
+      </div>
+      <button class="btn btn-icon btn-ghost" onclick="closeDrawer()">✕</button>
+    </div>
+    <div class="drawer-body">
+      <!-- Trade info -->
+      <div class="detail-grid" id="drawerTradeInfo"></div>
+
+      <div class="form-group">
+        <label class="form-label">Entry Rationale — Why did you enter this trade?</label>
+        <textarea class="form-textarea" id="journalRationale" rows="3"
+          placeholder="e.g. Saw a bullish engulfing at a key support level on the 1H chart..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Emotion</label>
+        <select class="form-select" id="journalEmotion">
+          <option value="">Select...</option>
+          <option value="Confident">😎 Confident</option>
+          <option value="Disciplined">🎯 Disciplined</option>
+          <option value="Patient">🧘 Patient</option>
+          <option value="Neutral">😐 Neutral</option>
+          <option value="Anxious">😰 Anxious</option>
+          <option value="FOMO">🏃 FOMO</option>
+          <option value="Greedy">🤑 Greedy</option>
+          <option value="Fearful">😨 Fearful</option>
+          <option value="Revenge">😤 Revenge Trading</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Strategy Tags</label>
+        <div class="tag-chips" id="drawerTagChips"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Self-Rating</label>
+        <div class="star-rating" id="drawerStars">
+          <span class="star" data-val="1" onclick="setRating(1)">★</span>
+          <span class="star" data-val="2" onclick="setRating(2)">★</span>
+          <span class="star" data-val="3" onclick="setRating(3)">★</span>
+          <span class="star" data-val="4" onclick="setRating(4)">★</span>
+          <span class="star" data-val="5" onclick="setRating(5)">★</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Lesson / Post-Trade Reflection</label>
+        <textarea class="form-textarea" id="journalLesson" rows="3"
+          placeholder="What did you learn? What would you do differently?"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Screenshot Before (URL)</label>
+        <input class="form-input" id="journalScreenBefore" placeholder="https://..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Screenshot After (URL)</label>
+        <input class="form-input" id="journalScreenAfter" placeholder="https://..." />
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn btn-secondary" onclick="closeDrawer()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveJournal()">💾 Save Journal</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <span id="toastIcon">✅</span>
+    <span id="toastMessage"></span>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
