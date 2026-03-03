@@ -9,6 +9,26 @@ build/
 *.sqlite3
 venv/
 .env
+.env.local
+.env.production
+
+# API Keys & Credentials (สำคัญมาก!)
+secrets.json
+config.ini
+*_credentials.json
+api_keys.txt
+
+# MT5
+mt5_config.json
+mt5_credentials.json
+
+# Logs
+*.log
+logs/
+
+# Uploads / Screenshots
+uploads/
+screenshots/
 
 # Node
 node_modules/
@@ -21,3 +41,4 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
